@@ -3,14 +3,28 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Plunk API Key
+    | Plunk Secret API Key (sk_*)
     |--------------------------------------------------------------------------
     |
-    | This is your Plunk API key which you can find in your Plunk dashboard.
-    | This key is used to authenticate with the Plunk API.
+    | The secret key from your Plunk dashboard. Used for server-side endpoints:
+    | /v1/send, /v1/verify, and any other sk_*-protected endpoint. Never expose
+    | this key to browsers or mobile clients.
     |
     */
     'api_key' => env('PLUNK_API_KEY'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Plunk Public API Key (pk_*)
+    |--------------------------------------------------------------------------
+    |
+    | The public key from your Plunk dashboard. Required for the /v1/track
+    | endpoint, which only accepts pk_* keys. Calling trackEvent() without
+    | this set will throw a RuntimeException. Leave unset if you do not use
+    | event tracking — sendEmail/sendTemplate/verifyEmail are unaffected.
+    |
+    */
+    'public_api_key' => env('PLUNK_PUBLIC_API_KEY'),
 
     /*
     |--------------------------------------------------------------------------

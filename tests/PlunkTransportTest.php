@@ -18,6 +18,7 @@ class PlunkTransportTest extends TestCase
         $app['config']->set('mail.default', 'plunk');
         $app['config']->set('mail.mailers.plunk', ['transport' => 'plunk']);
         $app['config']->set('plunk.api_key', 'sk_test_key');
+        $app['config']->set('plunk.public_api_key', 'pk_test_key');
         $app['config']->set('plunk.api_url', 'https://api.useplunk.com');
         $app['config']->set('plunk.endpoint', '/v1/send');
     }

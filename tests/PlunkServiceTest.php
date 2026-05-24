@@ -25,7 +25,7 @@ class PlunkServiceTest extends TestCase
             ]),
         ]);
 
-        $service = new PlunkService('sk_test_key', 'https://api.useplunk.com', '/v1/send');
+        $service = new PlunkService('sk_test_key', 'pk_test_key', 'https://api.useplunk.com', '/v1/send');
         $result = $service->sendEmail('test@example.com', 'Test Subject', '<p>Hello</p>');
 
         $this->assertTrue($result['success']);
@@ -45,7 +45,7 @@ class PlunkServiceTest extends TestCase
             'https://api.useplunk.com/v1/send' => Http::response(['success' => true]),
         ]);
 
-        $service = new PlunkService('sk_test_key', 'https://api.useplunk.com', '/v1/send');
+        $service = new PlunkService('sk_test_key', 'pk_test_key', 'https://api.useplunk.com', '/v1/send');
         $service->sendEmail('test@example.com', 'Test', '<p>Hi</p>', [
             'from' => 'sender@example.com',
             'name' => 'Sender Name',
@@ -74,7 +74,7 @@ class PlunkServiceTest extends TestCase
             'https://api.useplunk.com/v1/send' => Http::response(['success' => true]),
         ]);
 
-        $service = new PlunkService('sk_test_key', 'https://api.useplunk.com', '/v1/send');
+        $service = new PlunkService('sk_test_key', 'pk_test_key', 'https://api.useplunk.com', '/v1/send');
         $result = $service->sendTemplate('test@example.com', 'tmpl_123', [
             'name' => 'John',
             'action_url' => 'https://example.com/verify',
@@ -85,7 +85,8 @@ class PlunkServiceTest extends TestCase
                 && $request['template'] === 'tmpl_123'
                 && $request['data']['name'] === 'John'
                 && !isset($request['subject'])
-                && !isset($request['body']);
+                && !isset($request['body'])
+                && $request->hasHeader('Authorization', 'Bearer sk_test_key');
         });
     }
 
@@ -98,7 +99,7 @@ class PlunkServiceTest extends TestCase
             ]),
         ]);
 
-        $service = new PlunkService('sk_test_key', 'https://api.useplunk.com');
+        $service = new PlunkService('sk_test_key', 'pk_test_key', 'https://api.useplunk.com');
         $result = $service->trackEvent('user@example.com', 'signed_up', ['plan' => 'pro']);
 
         $this->assertTrue($result['success']);
@@ -108,7 +109,8 @@ class PlunkServiceTest extends TestCase
                 && $request['email'] === 'user@example.com'
                 && $request['event'] === 'signed_up'
                 && $request['data'] === ['plan' => 'pro']
-                && $request['subscribed'] === true;
+                && $request['subscribed'] === true
+                && $request->hasHeader('Authorization', 'Bearer pk_test_key');
         });
     }
 
@@ -121,7 +123,7 @@ class PlunkServiceTest extends TestCase
             ]),
         ]);
 
-        $service = new PlunkService('sk_test_key', 'https://api.useplunk.com');
+        $service = new PlunkService('sk_test_key', 'pk_test_key', 'https://api.useplunk.com');
         $result = $service->verifyEmail('test@example.com');
 
         $this->assertTrue($result['success']);
@@ -129,8 +131,33 @@ class PlunkServiceTest extends TestCase
 
         Http::assertSent(function ($request) {
             return str_contains($request->url(), '/v1/verify')
-                && $request['email'] === 'test@example.com';
+                && $request['email'] === 'test@example.com'
+                && $request->hasHeader('Authorization', 'Bearer sk_test_key');
         });
+    }
+
+    public function test_track_event_throws_when_public_key_is_null(): void
+    {
+        Http::fake();
+
+        $service = new PlunkService('sk_test_key', null, 'https://api.useplunk.com');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('PLUNK_PUBLIC_API_KEY');
+
+        $service->trackEvent('user@example.com', 'signed_up');
+    }
+
+    public function test_track_event_throws_when_public_key_is_empty_string(): void
+    {
+        Http::fake();
+
+        $service = new PlunkService('sk_test_key', '', 'https://api.useplunk.com');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('PLUNK_PUBLIC_API_KEY');
+
+        $service->trackEvent('user@example.com', 'signed_up');
     }
 
     public function test_handles_api_error(): void
@@ -142,7 +169,7 @@ class PlunkServiceTest extends TestCase
             ),
         ]);
 
-        $service = new PlunkService('sk_bad_key', 'https://api.useplunk.com', '/v1/send');
+        $service = new PlunkService('sk_bad_key', 'pk_test_key', 'https://api.useplunk.com', '/v1/send');
         $result = $service->sendEmail('test@example.com', 'Test', '<p>Hi</p>');
 
         $this->assertFalse($result['success']);
@@ -155,7 +182,7 @@ class PlunkServiceTest extends TestCase
             throw new \Exception('Connection timeout');
         });
 
-        $service = new PlunkService('sk_test_key', 'https://api.useplunk.com', '/v1/send');
+        $service = new PlunkService('sk_test_key', 'pk_test_key', 'https://api.useplunk.com', '/v1/send');
         $result = $service->sendEmail('test@example.com', 'Test', '<p>Hi</p>');
 
         $this->assertFalse($result['success']);
@@ -168,7 +195,7 @@ class PlunkServiceTest extends TestCase
             'https://api.useplunk.com/v1/send' => Http::response(['success' => true]),
         ]);
 
-        $service = new PlunkService('sk_test_key', 'https://api.useplunk.com', '/v1/send');
+        $service = new PlunkService('sk_test_key', 'pk_test_key', 'https://api.useplunk.com', '/v1/send');
         $service->sendEmail(
             ['alice@example.com', ['name' => 'Bob', 'email' => 'bob@example.com']],
             'Test',
@@ -190,7 +217,7 @@ class PlunkServiceTest extends TestCase
             'https://plunk.myapp.com/api/v1/send' => Http::response(['success' => true]),
         ]);
 
-        $service = new PlunkService('sk_test_key', 'https://plunk.myapp.com', '/api/v1/send');
+        $service = new PlunkService('sk_test_key', 'pk_test_key', 'https://plunk.myapp.com', '/api/v1/send');
         $service->sendEmail('test@example.com', 'Test', '<p>Hi</p>');
 
         Http::assertSent(function ($request) {

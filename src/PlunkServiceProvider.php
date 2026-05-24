@@ -30,6 +30,7 @@ class PlunkServiceProvider extends ServiceProvider
         $this->app->singleton(PlunkService::class, function () {
             return new PlunkService(
                 config('plunk.api_key', ''),
+                config('plunk.public_api_key'),
                 config('plunk.api_url', 'https://api.useplunk.com'),
                 config('plunk.endpoint', '/v1/send'),
             );

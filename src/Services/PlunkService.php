@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Log;
 class PlunkService
 {
     public function __construct(
-        protected readonly string $apiKey,
+        protected readonly string $secretApiKey,
+        protected readonly ?string $publicApiKey,
         protected readonly string $baseUrl,
         protected readonly string $endpoint = '/v1/send',
     ) {}
@@ -32,7 +33,7 @@ class PlunkService
             }
         }
 
-        return $this->request('POST', $this->endpoint, $payload);
+        return $this->requestSecret('POST', $this->endpoint, $payload);
     }
 
     /**
@@ -58,7 +59,7 @@ class PlunkService
             }
         }
 
-        return $this->request('POST', $this->endpoint, $payload);
+        return $this->requestSecret('POST', $this->endpoint, $payload);
     }
 
     /**
@@ -78,7 +79,7 @@ class PlunkService
             $payload['data'] = $data;
         }
 
-        return $this->request('POST', '/v1/track', $payload);
+        return $this->requestPublic('POST', '/v1/track', $payload);
     }
 
     /**
@@ -86,16 +87,30 @@ class PlunkService
      */
     public function verifyEmail(string $email): array
     {
-        return $this->request('POST', '/v1/verify', ['email' => $email]);
+        return $this->requestSecret('POST', '/v1/verify', ['email' => $email]);
     }
 
-    /**
-     * Make an authenticated request to the Plunk API.
-     */
-    protected function request(string $method, string $endpoint, array $data = []): array
+    protected function requestSecret(string $method, string $endpoint, array $data = []): array
+    {
+        return $this->dispatch($method, $endpoint, $this->secretApiKey, $data);
+    }
+
+    protected function requestPublic(string $method, string $endpoint, array $data = []): array
+    {
+        if ($this->publicApiKey === null || $this->publicApiKey === '') {
+            throw new \RuntimeException(
+                "Set PLUNK_PUBLIC_API_KEY to call {$endpoint}. "
+                . 'Public keys (pk_*) are required for event tracking.'
+            );
+        }
+
+        return $this->dispatch($method, $endpoint, $this->publicApiKey, $data);
+    }
+
+    protected function dispatch(string $method, string $endpoint, string $apiKey, array $data): array
     {
         try {
-            $response = Http::withToken($this->apiKey)
+            $response = Http::withToken($apiKey)
                 ->$method($this->baseUrl . $endpoint, $data);
 
             if ($response->successful()) {
