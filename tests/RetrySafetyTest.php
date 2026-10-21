@@ -6,6 +6,7 @@ use Illuminate\Contracts\Queue\Job;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Request;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Message;
 use Illuminate\Mail\SendQueuedMailable;
@@ -257,7 +258,7 @@ it('omits empty custom headers from the serialized API request', function () {
 
     packageMail();
 
-    Http::assertSent(function ($request): bool {
+    Http::assertSent(function (Request $request): bool {
         $payload = json_decode($request->body(), false, 512, JSON_THROW_ON_ERROR);
 
         return ! property_exists($payload, 'headers');
@@ -272,7 +273,7 @@ it('serializes populated custom headers as an object', function () {
         $mail->getHeaders()->addTextHeader('X-Campaign', 'account-alert');
     });
 
-    Http::assertSent(function ($request): bool {
+    Http::assertSent(function (Request $request): bool {
         $payload = json_decode($request->body(), false, 512, JSON_THROW_ON_ERROR);
 
         return is_object($payload->headers) && $payload->headers->{'X-Campaign'} === 'account-alert';
