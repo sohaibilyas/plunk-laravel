@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\Job;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Http\Client\ConnectionException;
@@ -46,6 +47,8 @@ class RetryTestMailable extends Mailable implements ShouldQueue
 
 class RetryTestNotification extends Notification implements ShouldQueue
 {
+    use Queueable;
+
     public function via(object $notifiable): array
     {
         return ['mail'];
