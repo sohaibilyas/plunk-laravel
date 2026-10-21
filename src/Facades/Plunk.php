@@ -1,9 +1,9 @@
 <?php
 
-namespace MarceloEatWorld\PlunkLaravel\Facades;
+namespace SohaibIlyas\PlunkLaravel\Facades;
 
 use Illuminate\Support\Facades\Facade;
-use MarceloEatWorld\PlunkLaravel\Services\PlunkService;
+use SohaibIlyas\PlunkLaravel\Services\PlunkService;
 
 /**
  * @method static array sendEmail(string|array $to, string $subject, string $body, array $options = [])
@@ -11,7 +11,7 @@ use MarceloEatWorld\PlunkLaravel\Services\PlunkService;
  * @method static array trackEvent(string $email, string $event, array $data = [], bool $subscribed = true)
  * @method static array verifyEmail(string $email)
  *
- * @see \MarceloEatWorld\PlunkLaravel\Services\PlunkService
+ * @see PlunkService
  */
 class Plunk extends Facade
 {

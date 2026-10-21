@@ -1,32 +1,34 @@
 <?php
 
-namespace MarceloEatWorld\PlunkLaravel\Tests;
+namespace SohaibIlyas\PlunkLaravel\Tests;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Orchestra\Testbench\TestCase;
+use SohaibIlyas\PlunkLaravel\PlunkServiceProvider;
+use Symfony\Component\Mailer\Exception\TransportException;
 
 class PlunkTransportTest extends TestCase
 {
     protected function getPackageProviders($app): array
     {
-        return [\MarceloEatWorld\PlunkLaravel\PlunkServiceProvider::class];
+        return [PlunkServiceProvider::class];
     }
 
     protected function defineEnvironment($app): void
     {
         $app['config']->set('mail.default', 'plunk');
         $app['config']->set('mail.mailers.plunk', ['transport' => 'plunk']);
-        $app['config']->set('plunk.api_key', 'sk_test_key');
-        $app['config']->set('plunk.public_api_key', 'pk_test_key');
-        $app['config']->set('plunk.api_url', 'https://api.useplunk.com');
+        $app['config']->set('plunk.secret_key', 'sk_test_key');
+        $app['config']->set('plunk.public_key', 'pk_test_key');
+        $app['config']->set('plunk.base_api_url', 'https://api.useplunk.com');
         $app['config']->set('plunk.endpoint', '/v1/send');
     }
 
     public function test_sends_email_through_laravel_mail(): void
     {
         Http::fake([
-            'https://api.useplunk.com/v1/send' => Http::response(['success' => true]),
+            'https://api.useplunk.com/v1/send' => Http::response(['success' => true, 'data' => ['emails' => [['email' => 'provider-id']]]]),
         ]);
 
         Mail::raw('Test body content', function ($message) {
@@ -38,15 +40,15 @@ class PlunkTransportTest extends TestCase
         Http::assertSent(function ($request) {
             return $request->url() === 'https://api.useplunk.com/v1/send'
                 && $request['subject'] === 'Integration Test'
-                && $request['from'] === 'sender@example.com'
-                && $request['name'] === 'Sender Name';
+                && $request['from']['email'] === 'sender@example.com'
+                && $request['from']['name'] === 'Sender Name';
         });
     }
 
     public function test_sends_html_email(): void
     {
         Http::fake([
-            'https://api.useplunk.com/v1/send' => Http::response(['success' => true]),
+            'https://api.useplunk.com/v1/send' => Http::response(['success' => true, 'data' => ['emails' => [['email' => 'provider-id']]]]),
         ]);
 
         Mail::html('<h1>Hello</h1><p>World</p>', function ($message) {
@@ -63,7 +65,7 @@ class PlunkTransportTest extends TestCase
     public function test_includes_reply_to(): void
     {
         Http::fake([
-            'https://api.useplunk.com/v1/send' => Http::response(['success' => true]),
+            'https://api.useplunk.com/v1/send' => Http::response(['success' => true, 'data' => ['emails' => [['email' => 'provider-id']]]]),
         ]);
 
         Mail::raw('Test', function ($message) {
@@ -78,12 +80,13 @@ class PlunkTransportTest extends TestCase
         });
     }
 
-    public function test_merges_cc_and_bcc_into_recipients(): void
+    public function test_rejects_cc_and_bcc_instead_of_exposing_recipient_roles(): void
     {
         Http::fake([
-            'https://api.useplunk.com/v1/send' => Http::response(['success' => true]),
+            'https://api.useplunk.com/v1/send' => Http::response(['success' => true, 'data' => ['emails' => [['email' => 'provider-id']]]]),
         ]);
 
+        $this->expectException(TransportException::class);
         Mail::raw('Test', function ($message) {
             $message->to('to@example.com')
                 ->cc('cc@example.com')
@@ -92,22 +95,12 @@ class PlunkTransportTest extends TestCase
                 ->subject('CC/BCC Test');
         });
 
-        Http::assertSent(function ($request) {
-            $to = $request['to'];
-            if (!is_array($to)) {
-                return false;
-            }
-            $emails = array_map(fn ($r) => is_array($r) ? $r['email'] : $r, $to);
-            return in_array('to@example.com', $emails)
-                && in_array('cc@example.com', $emails)
-                && in_array('bcc@example.com', $emails);
-        });
     }
 
     public function test_includes_recipient_names(): void
     {
         Http::fake([
-            'https://api.useplunk.com/v1/send' => Http::response(['success' => true]),
+            'https://api.useplunk.com/v1/send' => Http::response(['success' => true, 'data' => ['emails' => [['email' => 'provider-id']]]]),
         ]);
 
         Mail::raw('Test', function ($message) {
@@ -118,6 +111,7 @@ class PlunkTransportTest extends TestCase
 
         Http::assertSent(function ($request) {
             $to = $request['to'];
+
             return is_array($to)
                 && $to['name'] === 'John Doe'
                 && $to['email'] === 'recipient@example.com';
@@ -127,7 +121,7 @@ class PlunkTransportTest extends TestCase
     public function test_sends_with_attachment(): void
     {
         Http::fake([
-            'https://api.useplunk.com/v1/send' => Http::response(['success' => true]),
+            'https://api.useplunk.com/v1/send' => Http::response(['success' => true, 'data' => ['emails' => [['email' => 'provider-id']]]]),
         ]);
 
         Mail::raw('Test with attachment', function ($message) {
@@ -140,10 +134,11 @@ class PlunkTransportTest extends TestCase
         });
 
         Http::assertSent(function ($request) {
-            if (!isset($request['attachments']) || count($request['attachments']) !== 1) {
+            if (! isset($request['attachments']) || count($request['attachments']) !== 1) {
                 return false;
             }
             $attachment = $request['attachments'][0];
+
             return $attachment['filename'] === 'document.pdf'
                 && $attachment['contentType'] === 'application/pdf'
                 && base64_decode($attachment['content']) === 'PDF file content here';
@@ -160,7 +155,7 @@ class PlunkTransportTest extends TestCase
         ]);
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Plunk:');
+        $this->expectExceptionMessage('Plunk did not confirm');
 
         Mail::raw('Test', function ($message) {
             $message->to('recipient@example.com')

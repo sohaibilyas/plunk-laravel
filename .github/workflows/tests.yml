@@ -1,0 +1,32 @@
+name: Tests
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.3'
+            laravel: '^12.0'
+            testbench: '^10.0'
+            pest: '^3.0'
+          - php: '8.4'
+            laravel: '^13.0'
+            testbench: '^11.0'
+            pest: '^4.0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, dom, curl, sqlite3, pdo_sqlite
+          coverage: none
+      - run: composer require --dev 'laravel/framework:${{ matrix.laravel }}' 'orchestra/testbench:${{ matrix.testbench }}' 'pestphp/pest:${{ matrix.pest }}' --no-update
+      - run: composer update --no-interaction --prefer-dist --no-progress
+      - run: composer validate --strict
+      - run: composer test

@@ -1,16 +1,18 @@
 <?php
 
-namespace MarceloEatWorld\PlunkLaravel\Tests;
+namespace SohaibIlyas\PlunkLaravel\Tests;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
-use MarceloEatWorld\PlunkLaravel\Services\PlunkService;
 use Orchestra\Testbench\TestCase;
+use SohaibIlyas\PlunkLaravel\PlunkServiceProvider;
+use SohaibIlyas\PlunkLaravel\Services\PlunkService;
 
 class PlunkServiceTest extends TestCase
 {
     protected function getPackageProviders($app): array
     {
-        return [\MarceloEatWorld\PlunkLaravel\PlunkServiceProvider::class];
+        return [PlunkServiceProvider::class];
     }
 
     public function test_sends_basic_email(): void
@@ -84,8 +86,8 @@ class PlunkServiceTest extends TestCase
             return $request['to'] === 'test@example.com'
                 && $request['template'] === 'tmpl_123'
                 && $request['data']['name'] === 'John'
-                && !isset($request['subject'])
-                && !isset($request['body'])
+                && ! isset($request['subject'])
+                && ! isset($request['body'])
                 && $request->hasHeader('Authorization', 'Bearer sk_test_key');
         });
     }
@@ -179,14 +181,14 @@ class PlunkServiceTest extends TestCase
     public function test_handles_exception(): void
     {
         Http::fake(function () {
-            throw new \Exception('Connection timeout');
+            throw new ConnectionException('Connection timeout');
         });
 
         $service = new PlunkService('sk_test_key', 'pk_test_key', 'https://api.useplunk.com', '/v1/send');
         $result = $service->sendEmail('test@example.com', 'Test', '<p>Hi</p>');
 
         $this->assertFalse($result['success']);
-        $this->assertStringContainsString('Connection timeout', $result['error']);
+        $this->assertStringContainsString('outcome is unknown', $result['error']);
     }
 
     public function test_sends_to_multiple_recipients(): void
@@ -204,6 +206,7 @@ class PlunkServiceTest extends TestCase
 
         Http::assertSent(function ($request) {
             $to = $request['to'];
+
             return is_array($to)
                 && $to[0] === 'alice@example.com'
                 && $to[1]['name'] === 'Bob'

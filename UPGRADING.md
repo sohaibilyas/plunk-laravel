@@ -1,40 +1,13 @@
-# Upgrading from v1.x to v2.0
+# Upgrading to sohaibilyas/plunk-laravel 3
 
-v2.0 splits Plunk's secret and public API keys so that each endpoint is called with the correct credential. Plunk's `/v1/track` endpoint only accepts public keys (`pk_*`); v1 sent the secret key to every endpoint and got 401s back from tracking.
+This is an independently maintained fork with a new Composer name and PHP namespace.
 
-## Breaking changes
+1. Remove `marceloeatworld/plunk-laravel` or `nextmigrant/laravel-plunk` before installing this package. Both conflict because they register overlapping configuration/providers.
+2. Require `sohaibilyas/plunk-laravel:^3.0` and use `SohaibIlyas\PlunkLaravel` instead of `MarceloEatWorld\PlunkLaravel` imports.
+3. Remove application-level registrations of the `plunk` transport and duplicate queue lifecycle hooks. Package discovery now supplies them.
+4. Review your existing published `config/plunk.php`. The canonical keys are `secret_key`, `public_key`, `base_api_url`, `endpoint`, `timeout`, `connect_timeout`, and `mail_max_job_age`. The package configuration accepts legacy `PLUNK_API_KEY`, `PLUNK_PUBLIC_API_KEY` and `PLUNK_API_URL` environment variables as fallbacks.
+5. CC/BCC now throw instead of being merged into To. API errors and malformed acceptance responses throw from the transport. Direct helper methods still return result arrays.
+6. The transport requires HTTPS and server-side idempotency with at least 24-hour retention. Read the retry limits and explicit-key guidance in README before enabling queued sending.
+7. Rebuild configuration and restart application/queue workers. Do not switch transport implementations while a failed send is awaiting an ambiguous retry; review those sends first because the request-key namespace changes.
 
-### `PlunkService` constructor now takes two keys
-
-If you instantiate `PlunkService` manually:
-
-```php
-// v1
-new PlunkService($secretKey, $baseUrl, $endpoint);
-
-// v2
-new PlunkService($secretKey, $publicKey, $baseUrl, $endpoint);
-```
-
-`$publicKey` is `?string` — pass `null` if you don't use event tracking.
-
-If you use the Laravel service container (the standard path), set the new env var and you're done:
-
-```env
-PLUNK_PUBLIC_API_KEY=pk_xxxxxxxxxxxx
-```
-
-### `trackEvent()` now requires a public key
-
-`/v1/track` only accepts `pk_*` keys. Calling `trackEvent()` without `PLUNK_PUBLIC_API_KEY` set throws a `RuntimeException` with a clear message. Set the env var to fix.
-
-If you don't use `trackEvent()`, nothing changes — `sendEmail()`, `sendTemplate()`, and `verifyEmail()` continue to use the secret key, and the `mail.default=plunk` transport is unaffected.
-
-## Endpoint → key map
-
-| Method            | Endpoint     | Key   |
-|-------------------|--------------|-------|
-| `sendEmail()`     | `/v1/send`   | `sk_*` |
-| `sendTemplate()`  | `/v1/send`   | `sk_*` |
-| `trackEvent()`    | `/v1/track`  | `pk_*` |
-| `verifyEmail()`   | `/v1/verify` | `sk_*` |
+The supported framework range is Laravel 12–13 on PHP 8.3+. No dependency on the NextMigrant SDK remains.

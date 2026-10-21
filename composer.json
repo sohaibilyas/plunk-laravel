@@ -1,46 +1,74 @@
 {
-    "name": "marceloeatworld/plunk-laravel",
-    "description": "#1 Laravel mail transport for Plunk with event tracking and email verification, compatible with native PHP",
-    "keywords": ["laravel", "plunk", "mail", "email", "transport", "transactional"],
+    "name": "sohaibilyas/plunk-laravel",
+    "description": "Laravel mail transport for Plunk with queue retry idempotency, attachments and self-hosted support.",
+    "keywords": [
+        "laravel",
+        "plunk",
+        "mail",
+        "email",
+        "transport",
+        "transactional"
+    ],
     "license": "MIT",
     "authors": [
         {
             "name": "marcelo",
             "email": "diagngo@gmail.com"
+        },
+        {
+            "name": "Sohaib Ilyas",
+            "homepage": "https://github.com/sohaibilyas",
+            "role": "Maintainer"
         }
     ],
     "require": {
-        "php": "^8.2",
-        "illuminate/support": "^10.0|^11.0|^12.0|^13.0",
-        "illuminate/mail": "^10.0|^11.0|^12.0|^13.0"
+        "php": "^8.3",
+        "illuminate/support": "^12.0|^13.0",
+        "illuminate/mail": "^12.0|^13.0",
+        "illuminate/http": "^12.0|^13.0",
+        "illuminate/queue": "^12.0|^13.0"
     },
     "require-dev": {
-        "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
-        "phpunit/phpunit": "^10.0|^11.0|^12.0|^13.0"
+        "orchestra/testbench": "^10.0|^11.0",
+        "pestphp/pest": "^3.0|^4.0",
+        "laravel/pint": "^1.0"
     },
     "autoload": {
         "psr-4": {
-            "MarceloEatWorld\\PlunkLaravel\\": "src/"
+            "SohaibIlyas\\PlunkLaravel\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "MarceloEatWorld\\PlunkLaravel\\Tests\\": "tests/"
+            "SohaibIlyas\\PlunkLaravel\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "MarceloEatWorld\\PlunkLaravel\\PlunkServiceProvider"
+                "SohaibIlyas\\PlunkLaravel\\PlunkServiceProvider"
             ],
             "aliases": {
-                "Plunk": "MarceloEatWorld\\PlunkLaravel\\Facades\\Plunk"
+                "Plunk": "SohaibIlyas\\PlunkLaravel\\Facades\\Plunk"
             }
         }
     },
     "scripts": {
-        "test": "vendor/bin/phpunit"
+        "test": "vendor/bin/pest",
+        "format": "vendor/bin/pint"
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "homepage": "https://github.com/sohaibilyas/plunk-laravel",
+    "type": "library",
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        },
+        "sort-packages": true
+    },
+    "conflict": {
+        "marceloeatworld/plunk-laravel": "*",
+        "nextmigrant/laravel-plunk": "*"
+    }
 }
