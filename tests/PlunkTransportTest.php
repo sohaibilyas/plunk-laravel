@@ -18,7 +18,6 @@ class PlunkTransportTest extends TestCase
     protected function defineEnvironment($app): void
     {
         $app['config']->set('mail.default', 'plunk');
-        $app['config']->set('mail.mailers.plunk', ['transport' => 'plunk']);
         $app['config']->set('plunk.secret_key', 'sk_test_key');
         $app['config']->set('plunk.public_key', 'pk_test_key');
         $app['config']->set('plunk.base_api_url', 'https://api.useplunk.com');

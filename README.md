@@ -15,14 +15,7 @@ composer require sohaibilyas/plunk-laravel:^3.0
 php artisan vendor:publish --tag=plunk-config
 ```
 
-The service provider is discovered automatically. Add this mailer to `config/mail.php`:
-
-```php
-'mailers' => [
-    // Existing mailers...
-    'plunk' => ['transport' => 'plunk'],
-],
-```
+The service provider and `plunk` mailer are registered automatically. No entry in `config/mail.php` is required. Existing mailer overrides are preserved, and installing the package does not change your default mailer. Publishing `config/plunk.php` is optional unless you want to customize it.
 
 Configure your server environment:
 

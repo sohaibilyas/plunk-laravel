@@ -1,8 +1,10 @@
 <?php
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Config\Repository;
 use Illuminate\Contracts\Queue\Job;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Application;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Message;
@@ -17,6 +19,7 @@ use Illuminate\Support\Facades\Notification as Notifications;
 use Orchestra\Testbench\TestCase;
 use SohaibIlyas\PlunkLaravel\PlunkServiceProvider;
 use SohaibIlyas\PlunkLaravel\Support\PlunkMailContext;
+use SohaibIlyas\PlunkLaravel\Transport\PlunkTransport;
 use Symfony\Component\Mailer\Exception\TransportException;
 
 class RetryPackageTestCase extends TestCase
@@ -29,7 +32,6 @@ class RetryPackageTestCase extends TestCase
     protected function defineEnvironment($app): void
     {
         $app['config']->set('mail.default', 'plunk');
-        $app['config']->set('mail.mailers.plunk', ['transport' => 'plunk']);
         $app['config']->set('mail.from', ['address' => 'sender@example.com', 'name' => 'Sender']);
         $app['config']->set('plunk.secret_key', 'sk_test_only');
         $app['config']->set('plunk.base_api_url', 'https://plunk.test');
@@ -199,4 +201,53 @@ it('does not invent a valid identity for a nested job whose parent has no UUID',
     $context->begin(new SyncJob(app(), json_encode(['uuid' => 'child', 'createdAt' => time()]), 'sync', 'default'));
     expect(fn () => packageMail())->toThrow(TransportException::class);
     Http::assertNothingSent();
+});
+
+it('registers the mailer automatically without an application mailer entry', function () {
+    expect(config('mail.mailers.plunk'))->toBe(['transport' => 'plunk']);
+    expect(Mail::mailer('plunk')->getSymfonyTransport())->toBeInstanceOf(PlunkTransport::class);
+});
+
+it('preserves application mailer overrides and the selected default mailer', function () {
+    config([
+        'mail.default' => 'log',
+        'mail.mailers.plunk' => ['timeout' => 30, 'base_api_url' => 'https://custom.example.com'],
+    ]);
+    (new PlunkServiceProvider(app()))->register();
+
+    expect(config('mail.mailers.plunk'))->toBe([
+        'transport' => 'plunk',
+        'timeout' => 30,
+        'base_api_url' => 'https://custom.example.com',
+    ])->and(config('mail.default'))->toBe('log');
+});
+
+it('does not override an explicitly configured transport', function () {
+    config(['mail.mailers.plunk' => ['transport' => 'log']]);
+    (new PlunkServiceProvider(app()))->register();
+
+    expect(config('mail.mailers.plunk.transport'))->toBe('log');
+});
+
+it('registers the default when a mailer entry is explicitly null', function () {
+    config(['mail.mailers.plunk' => null]);
+    (new PlunkServiceProvider(app()))->register();
+
+    expect(config('mail.mailers.plunk'))->toBe(['transport' => 'plunk']);
+});
+
+it('registers the mailer even when configuration was cached without it', function () {
+    $application = new class extends Application
+    {
+        public function configurationIsCached(): bool
+        {
+            return true;
+        }
+    };
+    $config = new Repository(['mail' => ['default' => 'log']]);
+    $application->instance('config', $config);
+    (new PlunkServiceProvider($application))->register();
+
+    expect($config->get('mail.mailers.plunk'))->toBe(['transport' => 'plunk'])
+        ->and($config->get('mail.default'))->toBe('log');
 });

@@ -17,6 +17,11 @@ class PlunkServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../config/plunk.php', 'plunk');
+        $config = $this->app->make('config');
+        $config->set('mail.mailers.plunk', array_replace(
+            ['transport' => 'plunk'],
+            $config->get('mail.mailers.plunk', []) ?? [],
+        ));
         $this->app->scoped(PlunkMailContext::class);
         $this->app->bind(PlunkService::class, fn (): PlunkService => new PlunkService(
             secretApiKey: config('plunk.secret_key') ?? '',

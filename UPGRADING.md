@@ -11,3 +11,7 @@ This is an independently maintained fork with a new Composer name and PHP namesp
 7. Rebuild configuration and restart application/queue workers. Do not switch transport implementations while a failed send is awaiting an ambiguous retry; review those sends first because the request-key namespace changes.
 
 The supported framework range is Laravel 12–13 on PHP 8.3+. No dependency on the NextMigrant SDK remains.
+
+## Version 3.0.1
+
+The package now registers `mail.mailers.plunk` automatically. You may remove a manual `['transport' => 'plunk']` entry from `config/mail.php`. Keep any application-specific overrides you need; they take precedence over the package default. Continue selecting the mailer with `MAIL_MAILER=plunk`.
