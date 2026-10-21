@@ -79,7 +79,7 @@ class PlunkTransport extends AbstractTransport
                     'body' => $body,
                     'from' => $this->address($email->getFrom()[0]),
                     'reply' => ($email->getReplyTo()[0] ?? null)?->getAddress(),
-                    'headers' => $headers,
+                    'headers' => $headers ?: null,
                     'attachments' => $attachments,
                 ], $key);
             } catch (ConnectionException) {

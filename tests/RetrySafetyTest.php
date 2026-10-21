@@ -251,3 +251,30 @@ it('registers the mailer even when configuration was cached without it', functio
     expect($config->get('mail.mailers.plunk'))->toBe(['transport' => 'plunk'])
         ->and($config->get('mail.default'))->toBe('log');
 });
+
+it('omits empty custom headers from the serialized API request', function () {
+    Http::fake(['plunk.test/*' => Http::response(acceptedPackageMail())]);
+
+    packageMail();
+
+    Http::assertSent(function ($request): bool {
+        $payload = json_decode($request->body(), false, 512, JSON_THROW_ON_ERROR);
+
+        return ! property_exists($payload, 'headers');
+    });
+});
+
+it('serializes populated custom headers as an object', function () {
+    Http::fake(['plunk.test/*' => Http::response(acceptedPackageMail())]);
+
+    Mail::html('<p>Message</p>', function (Message $mail): void {
+        $mail->to('recipient@example.com')->subject('Test');
+        $mail->getHeaders()->addTextHeader('X-Campaign', 'account-alert');
+    });
+
+    Http::assertSent(function ($request): bool {
+        $payload = json_decode($request->body(), false, 512, JSON_THROW_ON_ERROR);
+
+        return is_object($payload->headers) && $payload->headers->{'X-Campaign'} === 'account-alert';
+    });
+});
